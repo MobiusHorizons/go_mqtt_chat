@@ -87,6 +87,6 @@ func (c *Client) Disconnect() {
 
 func (c *Client) createMessage(username, body string) []byte {
 	// this will encrypt later
-	m := message.New(username, body)
+	m := message.New(c.username, body)
 	return m.Serialize()
 }
