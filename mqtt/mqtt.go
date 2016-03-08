@@ -2,7 +2,6 @@ package mqtt
 
 import (
 	"crypto/tls"
-	"fmt"
 	"github.com/MobiusHorizons/go_mqtt_chat/mqtt/event"
 	"github.com/satori/go.uuid"
 	"github.com/yosssi/gmq/mqtt"
@@ -24,19 +23,40 @@ type Auth struct {
 	Password string
 }
 
-func Dial(address string, auth *Auth) (*Connection, error) {
+type LWT struct {
+	Topic   []byte
+	Message []byte
+	Retain  bool
+	Qos     int
+}
+
+// used for going from an int to a mqtt qos
+var qualities []byte
+
+func Dial(address string, auth *Auth, lwt *LWT) (*Connection, error) {
+	qualities = []byte{
+		mqtt.QoS0,
+		mqtt.QoS1,
+		mqtt.QoS2,
+	}
 	conn := new(Connection)
 
 	a, err := url.Parse(address)
 	if a.Scheme == "mqtts" {
 		conn.tls = true
 	}
-	fmt.Println("Scheme = ", a.Scheme, "Host = ", a.Host)
 	clientID := uuid.NewV4()
 	connOpts := &client.ConnectOptions{
 		Network:  "tcp",
 		Address:  a.Host,
 		ClientID: clientID.Bytes(),
+	}
+
+	if lwt != nil {
+		connOpts.WillTopic = lwt.Topic
+		connOpts.WillMessage = lwt.Message
+		connOpts.WillRetain = lwt.Retain
+		connOpts.WillQoS = qualities[lwt.Qos]
 	}
 
 	if conn.tls {
@@ -71,12 +91,6 @@ func Dial(address string, auth *Auth) (*Connection, error) {
 }
 
 func (conn *Connection) Subscribe(topic string, qos int, out chan event.MessageEvent) {
-	qualities := []byte{
-		mqtt.QoS0,
-		mqtt.QoS1,
-		mqtt.QoS2,
-	}
-
 	conn.mqtt_client.Subscribe(&client.SubscribeOptions{
 		SubReqs: []*client.SubReq{
 			&client.SubReq{
@@ -99,13 +113,9 @@ func (conn *Connection) Subscribe(topic string, qos int, out chan event.MessageE
 }
 
 func (conn *Connection) Publish(topic string, message []byte, qos int, retain bool) error {
-	qualities := []byte{
-		mqtt.QoS0,
-		mqtt.QoS1,
-		mqtt.QoS2,
-	}
 	err := conn.mqtt_client.Publish(&client.PublishOptions{
 		QoS:       qualities[qos],
+		Retain:    retain,
 		TopicName: []byte(topic),
 		Message:   []byte(message),
 	})
