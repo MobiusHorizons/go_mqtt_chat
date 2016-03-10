@@ -88,7 +88,8 @@ func (c *Client) Say(username, body string) error {
 	if err != nil {
 		return err
 	}
-	err = c.connection.Publish("users/"+c.username+"/messages", outgoing_message, 0, false)
+	loop_message := c.createMessage(c.username, body)
+	err = c.connection.Publish("users/"+c.username+"/messages", loop_message, 0, false)
 	return err
 }
 
