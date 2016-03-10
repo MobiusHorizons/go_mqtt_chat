@@ -5,6 +5,7 @@ import (
 	"github.com/MobiusHorizons/go_mqtt_chat/message"
 	"github.com/MobiusHorizons/go_mqtt_chat/mqtt"
 	"github.com/MobiusHorizons/go_mqtt_chat/mqtt/event"
+	"os"
 )
 
 type Client struct {
@@ -32,7 +33,7 @@ func New(nickname, server, cryptoPwd string, auth *mqtt.Auth) *Client {
 	c.messages = make(chan event.MessageEvent)
 	c.presence = make(chan event.MessageEvent)
 	c.keys = make(chan event.MessageEvent)
-	c.pgp, err = crypto.New("/home/paul/", cryptoPwd)
+	c.pgp, err = crypto.New(os.Getenv("HOME"), cryptoPwd)
 	if err != nil {
 		panic(err)
 	}
